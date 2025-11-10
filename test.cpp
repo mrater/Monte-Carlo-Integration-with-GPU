@@ -15,7 +15,12 @@ int main(){
     double right_tab[1] = {1.0};
     IntegrationResult resultHighDim = integrateLinearCUDA(coeffs, 1, left_tab, right_tab, totalSamples);
 
+    double coeffs2D[3] = {1.0, 2.0, 3.0}; // y = 1*x0 + 2*x1 + 3
+    double left_tab2D[2] = {0.0, 0.0};
+    double right_tab2D[2] = {1.0, 1.0};
+    IntegrationResult resultHighDim2D = integrateLinearCUDA(coeffs2D, 2, left_tab2D, right_tab2D, totalSamples);
 
     std::cout << result.integralValue << "\n";
     std::cout << resultHighDim.integralValue << "\n";
+    std::cout << resultHighDim2D.integralValue << "\n";
 }

@@ -6,10 +6,10 @@ __device__ double linearFunction(double a, double b, double x) {
 
 __device__ double linearFunctionHighDimension(const double *coeffs, const double *x, int n) {
     double result = 0.0;
-    for (int i = 0; i < n - 1; i++) {
+    for (int i = 0; i < n; i++) {
         result += coeffs[i] * x[i];
     }
-    result += coeffs[n - 1]; //bias
+    result += coeffs[n]; //bias
     return result;
 }
 
@@ -49,13 +49,13 @@ __global__ void integrateLinearGPUHighDim(const double *coeffs, int dim, double 
     for (int d = 0; d < dim; d++) {
         a *= (right[d] - left[d]);
     }
-    results[idx] = sum / (double)samples * a;
+    results[idx] = a * sum / (double)samples;
 }
 
 
 IntegrationResult integrateLinearCUDA(double a, double b, double left, double right, uint32_t totalSamples) {
     const int threadsPerBlock = 256;
-    const int blocks = (totalSamples + threadsPerBlock - 1) / threadsPerBlock;
+    const int blocks = (totalSamples + threadsPerBlock - 1) / threadsPerBlock; // each block has some threads
     const int samplesPerThread = (totalSamples + blocks * threadsPerBlock - 1) / (blocks * threadsPerBlock);
 
     double *d_results;
@@ -86,11 +86,11 @@ IntegrationResult integrateLinearCUDA(const double *coeffs, int dim, double *lef
     const int samplesPerThread = (totalSamples + blocks * threadsPerBlock - 1) / (blocks * threadsPerBlock);
 
     double *d_coeffs, *d_left, *d_right;
-    cudaMalloc(&d_coeffs, dim * sizeof(double));
+    cudaMalloc(&d_coeffs, (dim + 1) * sizeof(double));
     cudaMalloc(&d_left, dim * sizeof(double));
     cudaMalloc(&d_right, dim * sizeof(double));
 
-    cudaMemcpy(d_coeffs, coeffs, dim * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_coeffs, coeffs, (dim + 1) * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_left, left, dim * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_right, right, dim * sizeof(double), cudaMemcpyHostToDevice);
 
@@ -106,7 +106,7 @@ IntegrationResult integrateLinearCUDA(const double *coeffs, int dim, double *lef
     for (int i = 0; i < blocks * threadsPerBlock; i++) {
         integralValue += h_results[i];
     }
-    integralValue /= totalSamples;
+    integralValue /= (blocks * threadsPerBlock);
 
     cudaFree(d_coeffs);
     cudaFree(d_left);
